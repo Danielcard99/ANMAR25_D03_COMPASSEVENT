@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -66,5 +67,15 @@ export class EventsController {
   @UseGuards(AuthGuard('jwt'))
   async findOne(@Param('id') id: string) {
     return this.eventsService.findOne(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'organizer')
+  async softDelete(@Param('id') id: string, @Req() req: AuthRequest) {
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    return this.eventsService.softDelete(id, userId, userRole);
   }
 }
