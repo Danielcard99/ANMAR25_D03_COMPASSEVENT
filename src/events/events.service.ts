@@ -1,17 +1,21 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { S3Service } from '../s3/s3.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { v4 as uuid } from 'uuid';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class EventsService {
@@ -60,6 +64,59 @@ export class EventsService {
     );
 
     return newEvent;
+  }
+
+  async update(
+    eventId: string,
+    data: UpdateEventDto,
+    requesterId: string,
+    isAdmin: boolean,
+  ) {
+    if (!data || Object.keys(data).length === 0) {
+      throw new BadRequestException('Request body cannot be empty');
+    }
+
+    const { Item: event } = await this.ddb.send(
+      new GetCommand({
+        TableName: process.env.EVENTS_TABLE_NAME,
+        Key: { id: eventId },
+      }),
+    );
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const isOwner = event.organizerId === requesterId;
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('You cannot edit this event');
+    }
+
+    if (data.name && data.name !== event.name) {
+      const nameExists = await this.checkIfEventNameExists(data.name);
+      if (nameExists) {
+        throw new BadRequestException('Event name already exists');
+      }
+    }
+
+    const updatedEvent = {
+      ...event,
+      ...(data.name && { name: data.name }),
+      ...(data.description && { description: data.description }),
+      ...(data.date && { date: data.date }),
+      ...(isAdmin && data.organizerId && { organizerId: data.organizerId }),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.ddb.send(
+      new PutCommand({
+        TableName: process.env.EVENTS_TABLE_NAME,
+        Item: updatedEvent,
+      }),
+    );
+
+    return updatedEvent;
   }
 
   async checkIfEventNameExists(name: string): Promise<boolean> {
