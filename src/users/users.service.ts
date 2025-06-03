@@ -149,6 +149,24 @@ export class UsersService {
     };
   }
 
+  async findById(userId: string) {
+    const result = await this.ddb.send(
+      new GetCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Key: { id: userId },
+      }),
+    );
+
+    const user = result.Item as User;
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { password, ...userWithoutPassword } = result.Item as User;
+    return userWithoutPassword;
+  }
+
   async findByEmail(email: string): Promise<User | undefined> {
     const response = await this.ddb.send(
       new QueryCommand({
