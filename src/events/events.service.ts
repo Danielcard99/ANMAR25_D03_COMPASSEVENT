@@ -162,6 +162,28 @@ export class EventsService {
     };
   }
 
+  async findOne(id: string) {
+    try {
+      const { Item: event } = await this.ddb.send(
+        new GetCommand({
+          TableName: process.env.EVENTS_TABLE_NAME,
+          Key: { id },
+        }),
+      );
+
+      if (!event) {
+        throw new NotFoundException('Event not found');
+      }
+
+      return event;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to fetch event');
+    }
+  }
+
   async checkIfEventNameExists(name: string): Promise<boolean> {
     const response = await this.ddb.send(
       new QueryCommand({
