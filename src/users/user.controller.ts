@@ -6,10 +6,16 @@ import {
   UseInterceptors,
   UsePipes,
   ValidationPipe,
+  Patch,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
+import { UpdatePatchUserDto } from './dto/update-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { User } from '../common/decorators/user.decorator';
 
 @Controller('users')
 @UsePipes(new ValidationPipe())
@@ -23,5 +29,14 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.usersService.create(file, data);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('me')
+  async update(
+    @Body() data: UpdatePatchUserDto,
+    @User('userId') userId: string,
+  ) {
+    return this.usersService.update(data, userId);
   }
 }
