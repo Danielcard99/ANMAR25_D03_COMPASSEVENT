@@ -8,9 +8,9 @@ import {
   ValidationPipe,
   Patch,
   UseGuards,
-  Request,
   Get,
   Query,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -21,6 +21,8 @@ import { User } from '../common/decorators/user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { FilterUsersDto } from './dto/filter-users.dto';
+import { UserIdParamDto } from './dto/User-id-params.dto';
+import { SelfOrAdminGuard } from '../common/guards/self-or-admin.guard';
 
 @Controller('users')
 @UsePipes(new ValidationPipe())
@@ -50,5 +52,12 @@ export class UsersController {
   @Roles('admin')
   async findAll(@Query() filterDto: FilterUsersDto) {
     return this.usersService.findAll(filterDto);
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'), SelfOrAdminGuard)
+  async findOne(@Param() params: UserIdParamDto) {
+    const user = await this.usersService.findById(params.id);
+    return { user };
   }
 }
