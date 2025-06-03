@@ -10,6 +10,7 @@ import {
 export enum UserRole {
   ORGANIZER = 'organizer',
   PARTICIPANT = 'participant',
+  ADMIN = 'admin',
 }
 
 export class CreateUserDto {
