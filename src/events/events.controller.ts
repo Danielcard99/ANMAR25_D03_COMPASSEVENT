@@ -61,4 +61,10 @@ export class EventsController {
   async findAll(@Query() filter: FilterEventsDto) {
     return this.eventsService.findAll(filter);
   }
+
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'))
+  async findOne(@Param('id') id: string) {
+    return this.eventsService.findOne(id);
+  }
 }
