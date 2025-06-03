@@ -4,6 +4,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   BadRequestException,
@@ -17,6 +18,7 @@ import { v4 as uuid } from 'uuid';
 import { User } from './entities/user.entity';
 import { hashPassword } from './utils/hash.util';
 import { UpdatePatchUserDto } from './dto/update-user.dto';
+import { FilterUsersDto } from './dto/filter-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -108,6 +110,43 @@ export class UsersService {
     );
 
     return { user: updatedUser };
+  }
+
+  async findAll(filter: FilterUsersDto) {
+    const { name, email, role, page = 1, limit = 10 } = filter;
+
+    const result = await this.ddb.send(
+      new ScanCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+      }),
+    );
+
+    const allUsers = result.Items as User[];
+
+    const filteredUsers = allUsers.filter((user) => {
+      const nameMatch = name
+        ? user.name.toLowerCase().includes(name.toLowerCase())
+        : true;
+      const emailMatch = email
+        ? user.email.toLowerCase().includes(email.toLowerCase())
+        : true;
+      const roleMatch = role ? user.role === role : true;
+
+      return nameMatch && emailMatch && roleMatch;
+    });
+
+    const paginated = filteredUsers.slice((page - 1) * limit, page * limit);
+    const withoutPassword = paginated.map(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ({ password, ...rest }) => rest,
+    );
+
+    return {
+      total: filteredUsers.length,
+      page,
+      limit,
+      data: withoutPassword,
+    };
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
