@@ -38,9 +38,12 @@ export class S3Service {
     return value;
   }
 
-  async uploadImage(file: MulterFile): Promise<string> {
+  async uploadImage(
+    file: MulterFile,
+    folder: string = 'profiles',
+  ): Promise<string> {
     const extension = extname(file.originalname);
-    const key = `profiles/${randomUUID()}${extension}`;
+    const key = `${folder}/${randomUUID()}${extension}`;
 
     await this.client.send(
       new PutObjectCommand({
