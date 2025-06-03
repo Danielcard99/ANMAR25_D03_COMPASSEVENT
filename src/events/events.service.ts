@@ -4,6 +4,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   BadRequestException,
@@ -16,6 +17,8 @@ import { S3Service } from '../s3/s3.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { v4 as uuid } from 'uuid';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { DateDirection, FilterEventsDto } from './dto/filter-event.dto';
+import { Event } from './entities/event.entity';
 
 @Injectable()
 export class EventsService {
@@ -117,6 +120,45 @@ export class EventsService {
     );
 
     return updatedEvent;
+  }
+
+  async findAll(filter: FilterEventsDto) {
+    const { name, date, dateDirection, status, page = 1, limit = 10 } = filter;
+
+    const result = await this.ddb.send(
+      new ScanCommand({
+        TableName: process.env.EVENTS_TABLE_NAME,
+      }),
+    );
+
+    const allEvents: Event[] = result.Items as Event[];
+
+    const effectiveDateDirection = dateDirection ?? DateDirection.AFTER;
+
+    const filtered = allEvents.filter((event: Event) => {
+      const nameMatch = name
+        ? event.name.toLowerCase().includes(name.toLowerCase())
+        : true;
+
+      const dateMatch = date
+        ? effectiveDateDirection === DateDirection.BEFORE
+          ? new Date(event.date) < new Date(date)
+          : new Date(event.date) > new Date(date)
+        : true;
+
+      const statusMatch = status ? event.status === status : true;
+
+      return nameMatch && dateMatch && statusMatch;
+    });
+
+    const paginated = filtered.slice((page - 1) * limit, page * limit);
+
+    return {
+      total: filtered.length,
+      page,
+      limit,
+      data: paginated,
+    };
   }
 
   async checkIfEventNameExists(name: string): Promise<boolean> {
