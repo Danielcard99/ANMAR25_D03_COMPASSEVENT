@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -8,12 +9,14 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { S3Service } from '../s3/s3.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { v4 as uuid } from 'uuid';
 import { User } from './entities/user.entity';
 import { hashPassword } from './utils/hash.util';
+import { UpdatePatchUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -58,6 +61,53 @@ export class UsersService {
     );
 
     return { user };
+  }
+
+  async update(data: UpdatePatchUserDto, userId: string) {
+    if (!data || typeof data !== 'object') {
+      throw new BadRequestException('Request body is empty');
+    }
+
+    const result = await this.ddb.send(
+      new GetCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Key: { id: userId },
+      }),
+    );
+
+    const existingUser = result.Item as User;
+
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (data.email && data.email !== existingUser.email) {
+      const userWithSameEmail = await this.findByEmail(data.email);
+      if (userWithSameEmail && userWithSameEmail.id !== userId) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
+    let password = existingUser.password;
+    if (data.password) {
+      password = await hashPassword(data.password);
+    }
+
+    const updatedUser: User = {
+      ...existingUser,
+      ...data,
+      password,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.ddb.send(
+      new PutCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Item: updatedUser,
+      }),
+    );
+
+    return { user: updatedUser };
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
