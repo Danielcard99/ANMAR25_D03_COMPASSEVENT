@@ -184,6 +184,40 @@ export class EventsService {
     }
   }
 
+  async softDelete(id: string, userId: string, userRole: string) {
+    const { Item: event } = await this.ddb.send(
+      new GetCommand({
+        TableName: process.env.EVENTS_TABLE_NAME,
+        Key: { id },
+      }),
+    );
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (userRole !== 'admin' && event.organizerId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this event',
+      );
+    }
+
+    const updatedEvent = {
+      ...event,
+      status: EventStatus.INACTIVE,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.ddb.send(
+      new PutCommand({
+        TableName: process.env.EVENTS_TABLE_NAME,
+        Item: updatedEvent,
+      }),
+    );
+
+    return updatedEvent;
+  }
+
   async checkIfEventNameExists(name: string): Promise<boolean> {
     const response = await this.ddb.send(
       new QueryCommand({
