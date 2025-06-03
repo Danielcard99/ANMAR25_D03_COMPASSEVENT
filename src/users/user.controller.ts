@@ -11,6 +11,8 @@ import {
   Get,
   Query,
   Param,
+  Delete,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -23,6 +25,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { UserIdParamDto } from './dto/User-id-params.dto';
 import { SelfOrAdminGuard } from '../common/guards/self-or-admin.guard';
+import { AuthRequest } from '../common/interfaces/auth-request.interface';
 
 @Controller('users')
 @UsePipes(new ValidationPipe())
@@ -59,5 +62,14 @@ export class UsersController {
   async findOne(@Param() params: UserIdParamDto) {
     const user = await this.usersService.findById(params.id);
     return { user };
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), SelfOrAdminGuard)
+  async softDelete(
+    @Param() params: UserIdParamDto,
+    @Request() req: AuthRequest,
+  ) {
+    return this.usersService.softDelete(params.id, req.user);
   }
 }
