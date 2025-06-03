@@ -9,6 +9,7 @@ import {
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import { User } from './entities/user.entity';
 import { hashPassword } from './utils/hash.util';
 import { UpdatePatchUserDto } from './dto/update-user.dto';
 import { FilterUsersDto } from './dto/filter-users.dto';
+import { AuthRequest } from '../common/interfaces/auth-request.interface';
 
 @Injectable()
 export class UsersService {
@@ -165,6 +167,41 @@ export class UsersService {
 
     const { password, ...userWithoutPassword } = result.Item as User;
     return userWithoutPassword;
+  }
+
+  async softDelete(userId: string, requester: AuthRequest['user']) {
+    const result = await this.ddb.send(
+      new GetCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Key: { id: userId },
+      }),
+    );
+
+    const user = result.Item as User;
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (requester.role !== 'admin' && requester.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this user',
+      );
+    }
+
+    const updatedUser = {
+      ...user,
+      isActive: false,
+    };
+
+    await this.ddb.send(
+      new PutCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Item: updatedUser,
+      }),
+    );
+
+    return updatedUser;
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
