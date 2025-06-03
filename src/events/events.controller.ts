@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -19,6 +21,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { AuthRequest } from '../common/interfaces/auth-request.interface';
 import { EventsService } from './events.service';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { FilterEventsDto } from './dto/filter-event.dto';
 
 @Controller('events')
 @UsePipes(new ValidationPipe())
@@ -51,5 +54,11 @@ export class EventsController {
       req.user.userId,
       req.user.role === 'admin',
     );
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  async findAll(@Query() filter: FilterEventsDto) {
+    return this.eventsService.findAll(filter);
   }
 }
