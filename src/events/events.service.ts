@@ -14,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { S3Service } from '../s3/s3.service';
-import { CreateEventDto } from './dto/create-event.dto';
+import { CreateEventDto, EventStatus } from './dto/create-event.dto';
 import { v4 as uuid } from 'uuid';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { DateDirection, FilterEventsDto } from './dto/filter-event.dto';
@@ -54,6 +54,7 @@ export class EventsService {
       name: data.name,
       description: data.description,
       date: data.date,
+      status: EventStatus.ACTIVE,
       imageUrl,
       organizerId,
       createdAt: new Date().toISOString(),
