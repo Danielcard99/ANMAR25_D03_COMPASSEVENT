@@ -1,4 +1,6 @@
-export class User {
+import { EventStatus } from '../dto/create-event.dto';
+
+export class Event {
   id: string;
   name: string;
   description: string;
@@ -6,4 +8,5 @@ export class User {
   imageUrl: string;
   organizerId: string;
   createdAt: string;
+  status: EventStatus;
 }
