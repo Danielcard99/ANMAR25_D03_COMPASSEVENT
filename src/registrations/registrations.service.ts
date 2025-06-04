@@ -20,6 +20,10 @@ import { v4 as uuid } from 'uuid';
 import { RegistrationStatus } from './enums/registration-status.enum';
 import { Registration } from './entities/registration.entity';
 import { FilterRegistrationDto } from './dto/filter-registration.dto';
+import { MailService } from '../mail/mail.service';
+import { UsersService } from '../users/users.service';
+import { Event } from '../events/entities/event.entity';
+import { EventStatus } from '../events/dto/create-event.dto';
 
 @Injectable()
 export class RegistrationsService {
@@ -27,16 +31,20 @@ export class RegistrationsService {
     new DynamoDBClient({ region: process.env.AWS_REGION }),
   );
 
-  constructor(private readonly eventService: EventsService) {}
+  constructor(
+    private readonly eventService: EventsService,
+    private readonly mailService: MailService,
+    private readonly userService: UsersService,
+  ) {}
 
   async createRegistration(participantId: string, data: CreateRegistrationDto) {
-    const event = await this.eventService.findOne(data.eventId);
+    const event: Event = await this.eventService.findOne(data.eventId);
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
-    if (event.status !== 'active') {
+    if (event.status !== EventStatus.ACTIVE) {
       throw new BadRequestException('Event is not active');
     }
 
@@ -69,6 +77,16 @@ export class RegistrationsService {
           ConditionExpression: 'attribute_not_exists(id)',
         }),
       );
+
+      const user = await this.userService.findById(participantId);
+
+      if (user?.email) {
+        await this.mailService.sendEventSubscription(user.email, event);
+      } else {
+        console.warn(
+          'Usuário não possui e-mail cadastrado. E-mail não enviado.',
+        );
+      }
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException('Erro ao criar inscrição');
@@ -118,16 +136,18 @@ export class RegistrationsService {
 
   async cancelRegistration(registrationId: string, participantId: string) {
     try {
-      const { Item: registration } = await this.ddb.send(
+      const { Item } = await this.ddb.send(
         new GetCommand({
           TableName: process.env.REGISTRATIONS_TABLE_NAME,
           Key: { id: registrationId },
         }),
       );
 
-      if (!registration) {
+      if (!Item) {
         throw new NotFoundException('Registration not found');
       }
+
+      const registration = Item as Registration;
 
       if (registration.participantId != participantId) {
         throw new ForbiddenException(
@@ -153,6 +173,15 @@ export class RegistrationsService {
           },
         }),
       );
+
+      const [user, event] = await Promise.all([
+        this.userService.findById(participantId),
+        this.eventService.findOne(registration.eventId),
+      ]);
+
+      if (user?.email && event) {
+        await this.mailService.sendEventSubscriptionCanceled(user.email, event);
+      }
 
       return { message: 'Registration canceled successfully' };
     } catch (error) {
