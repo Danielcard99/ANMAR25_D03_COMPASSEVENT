@@ -68,7 +68,7 @@ export class UsersService {
   }
 
   async update(data: UpdatePatchUserDto, userId: string) {
-    if (!data || typeof data !== 'object') {
+    if (!data || Object.keys(data).length === 0) {
       throw new BadRequestException('Request body is empty');
     }
 
@@ -92,15 +92,17 @@ export class UsersService {
       }
     }
 
-    let password = existingUser.password;
-    if (data.password) {
-      password = await hashPassword(data.password);
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined),
+    );
+
+    if (typeof cleanData.password === 'string') {
+      cleanData.password = await hashPassword(cleanData.password);
     }
 
     const updatedUser: User = {
       ...existingUser,
-      ...data,
-      password,
+      ...cleanData,
       updatedAt: new Date().toISOString(),
     };
 
@@ -138,10 +140,7 @@ export class UsersService {
     });
 
     const paginated = filteredUsers.slice((page - 1) * limit, page * limit);
-    const withoutPassword = paginated.map(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      ({ password, ...rest }) => rest,
-    );
+    const withoutPassword = paginated.map(({ password, ...rest }) => rest);
 
     return {
       total: filteredUsers.length,
