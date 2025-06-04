@@ -21,6 +21,7 @@ import { hashPassword } from './utils/hash.util';
 import { UpdatePatchUserDto } from './dto/update-user.dto';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { AuthRequest } from '../common/interfaces/auth-request.interface';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -28,7 +29,10 @@ export class UsersService {
     new DynamoDBClient({ region: process.env.AWS_REGION }),
   );
 
-  constructor(private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(file: Express.Multer.File, data: CreateUserDto) {
     if (!file) {
@@ -44,6 +48,7 @@ export class UsersService {
     const createdAt = new Date().toISOString();
     const hashed = await hashPassword(data.password);
     const profileImageUrl = await this.s3Service.uploadImage(file);
+    const confirmationToken = uuid();
 
     const user: User = {
       id,
@@ -55,6 +60,8 @@ export class UsersService {
       phone: data.phone,
       role: data.role,
       isActive: true,
+      emailConfirmed: false,
+      emailConfirmationToken: confirmationToken,
     };
 
     await this.ddb.send(
@@ -63,6 +70,8 @@ export class UsersService {
         Item: user,
       }),
     );
+
+    await this.mailService.sendConfirmationEmail(user.email, confirmationToken);
 
     return { user };
   }
@@ -200,6 +209,13 @@ export class UsersService {
       }),
     );
 
+    if (updatedUser.email) {
+      await this.mailService.sendAccountDeleted(
+        updatedUser.email,
+        updatedUser.name,
+      );
+    }
+
     return updatedUser;
   }
 
@@ -216,5 +232,58 @@ export class UsersService {
     );
 
     return response.Items?.[0] as User | undefined;
+  }
+
+  async findByConfirmationToken(token: string): Promise<User | undefined> {
+    const response = await this.ddb.send(
+      new QueryCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        IndexName: 'emailConfirmationTokenIndex',
+        KeyConditionExpression: 'emailConfirmationToken = :token',
+        ExpressionAttributeValues: {
+          ':token': token,
+        },
+      }),
+    );
+
+    return response.Items?.[0] as User | undefined;
+  }
+
+  async confirmEmail(userId: string) {
+    const { Item: user } = await this.ddb.send(
+      new GetCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Key: { id: userId },
+      }),
+    );
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    user.emailConfirmed = true;
+    user.emailConfirmationToken = undefined;
+    user.updatedAt = new Date().toISOString();
+
+    await this.ddb.send(
+      new PutCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Item: user,
+      }),
+    );
+
+    return user;
+  }
+
+  async findAllParticipants(): Promise<User[]> {
+    const result = await this.ddb.send(
+      new ScanCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+      }),
+    );
+
+    const allUsers = result.Items as User[];
+
+    return allUsers.filter((user) => user.isActive && user.emailConfirmed);
   }
 }
