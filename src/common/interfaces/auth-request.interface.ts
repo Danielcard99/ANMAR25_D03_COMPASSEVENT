@@ -5,5 +5,6 @@ export interface AuthRequest extends Request {
     userId: string;
     email: string;
     role: 'organizer' | 'participant' | 'admin';
+    emailConfirmed: boolean;
   };
 }
