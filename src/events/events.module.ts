@@ -7,6 +7,6 @@ import { S3Module } from '../s3/s3.module';
   imports: [S3Module],
   controllers: [EventsController],
   providers: [EventsService],
-  exports: [],
+  exports: [EventsService],
 })
 export class EventsModule {}
