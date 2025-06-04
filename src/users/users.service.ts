@@ -286,4 +286,42 @@ export class UsersService {
 
     return allUsers.filter((user) => user.isActive && user.emailConfirmed);
   }
+
+  async createUserWithoutImage(
+    data: CreateUserDto & { profileImageUrl?: string },
+  ) {
+    const emailExists = await this.findByEmail(data.email);
+    if (emailExists) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const id = uuid();
+    const createdAt = new Date().toISOString();
+    const hashed = await hashPassword(data.password);
+    const profileImageUrl =
+      data.profileImageUrl || process.env.DEFAULT_PROFILE_IMAGE_URL || '';
+
+    const user: User = {
+      id,
+      createdAt,
+      profileImageUrl,
+      name: data.name,
+      email: data.email,
+      password: hashed,
+      phone: data.phone,
+      role: data.role,
+      isActive: true,
+      emailConfirmed: false,
+      emailConfirmationToken: uuid(),
+    };
+
+    await this.ddb.send(
+      new PutCommand({
+        TableName: process.env.USERS_TABLE_NAME,
+        Item: user,
+      }),
+    );
+
+    return { user };
+  }
 }
