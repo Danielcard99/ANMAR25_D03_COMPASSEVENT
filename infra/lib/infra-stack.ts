@@ -10,6 +10,7 @@ import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 export class InfraStack extends Stack {
   public readonly usersTable: dynamodb.Table;
   public readonly eventsTable: dynamodb.Table;
+  public readonly registrationsTable: dynamodb.Table;
   public readonly profileBucket: s3.Bucket;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -37,6 +38,23 @@ export class InfraStack extends Stack {
     this.eventsTable.addGlobalSecondaryIndex({
       indexName: 'eventName-index',
       partitionKey: { name: 'name', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    this.registrationsTable = new dynamodb.Table(this, 'RegistrationsTable', {
+      tableName: 'registrations',
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      removalPolicy: RemovalPolicy.DESTROY,
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    this.registrationsTable.addGlobalSecondaryIndex({
+      indexName: 'participantId-eventId-index',
+      partitionKey: {
+        name: 'participantId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: { name: 'eventId', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
