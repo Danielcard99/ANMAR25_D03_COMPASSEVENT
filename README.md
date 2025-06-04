@@ -121,27 +121,12 @@ cd compassevent
 npm install
 ```
 
-3. Configure the .env file with your environment variables
-```
-# Application settings
-PORT=3000
-
-# JWT settings
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRATION=1d
-
-# AWS settings
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-
-# Email settings
-EMAIL_HOST=smtp.example.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@example.com
-EMAIL_PASSWORD=your_password
-EMAIL_FROM=noreply@example.com
-```
+3. Configure your environment variables
+   - Copy the .env.example file to .env
+   ```bash
+   cp .env.example .env
+   ```
+   - Edit the .env file with your specific configuration values
 
 4. Run the seed to create the default admin user
 ```bash
