@@ -19,6 +19,8 @@ import { v4 as uuid } from 'uuid';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { DateDirection, FilterEventsDto } from './dto/filter-event.dto';
 import { Event } from './entities/event.entity';
+import { MailService } from '../mail/mail.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class EventsService {
@@ -32,7 +34,11 @@ export class EventsService {
     );
   }
 
-  constructor(private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly mailService: MailService,
+    private readonly usersService: UsersService,
+  ) {}
 
   async create(
     data: CreateEventDto,
@@ -72,6 +78,17 @@ export class EventsService {
         Item: newEvent,
       }),
     );
+    const organizer = await this.usersService.findById(organizerId);
+    if (organizer?.email) {
+      await this.mailService.sendEventCreated(organizer.email, newEvent);
+    }
+
+    const participants = await this.usersService.findAllParticipants();
+    for (const participant of participants) {
+      if (participant.email) {
+        await this.mailService.sendEventCreated(participant.email, newEvent);
+      }
+    }
 
     return newEvent;
   }
@@ -168,20 +185,20 @@ export class EventsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Event> {
     try {
-      const { Item: event } = await this.ddb.send(
+      const result = await this.ddb.send(
         new GetCommand({
           TableName: process.env.EVENTS_TABLE_NAME,
           Key: { id },
         }),
       );
 
-      if (!event) {
+      if (!result.Item) {
         throw new NotFoundException('Event not found');
       }
 
-      return event;
+      return result.Item as Event;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -191,16 +208,18 @@ export class EventsService {
   }
 
   async softDelete(id: string, userId: string, userRole: string) {
-    const { Item: event } = await this.ddb.send(
+    const { Item } = await this.ddb.send(
       new GetCommand({
         TableName: process.env.EVENTS_TABLE_NAME,
         Key: { id },
       }),
     );
 
-    if (!event) {
+    if (!Item) {
       throw new NotFoundException('Event not found');
     }
+
+    const event = Item as Event;
 
     if (userRole !== 'admin' && event.organizerId !== userId) {
       throw new ForbiddenException(
@@ -220,6 +239,21 @@ export class EventsService {
         Item: updatedEvent,
       }),
     );
+
+    const organizer = await this.usersService.findById(event.organizerId);
+    if (organizer?.email) {
+      await this.mailService.sendEventDeleted(organizer.email, updatedEvent);
+    }
+
+    const participants = await this.usersService.findAllParticipants();
+    for (const participant of participants) {
+      if (participant.email) {
+        await this.mailService.sendEventDeleted(
+          participant.email,
+          updatedEvent,
+        );
+      }
+    }
 
     return updatedEvent;
   }
