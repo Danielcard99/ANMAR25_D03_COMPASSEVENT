@@ -8,6 +8,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { EventStatus } from './create-event.dto';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum DateDirection {
   BEFORE = 'before',
@@ -15,6 +16,7 @@ export enum DateDirection {
 }
 
 export class FilterEventsDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @Transform(({ value }: { value: unknown }) =>
@@ -22,6 +24,7 @@ export class FilterEventsDto {
   )
   name?: string;
 
+  @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()
   @Transform(({ value }: { value: unknown }) =>
@@ -29,10 +32,12 @@ export class FilterEventsDto {
   )
   date?: string;
 
+  @ApiPropertyOptional()
   @IsOptional()
   @IsEnum(DateDirection)
   dateDirection?: DateDirection;
 
+  @ApiPropertyOptional()
   @IsOptional()
   @IsEnum(EventStatus)
   @Transform(({ value }: { value: unknown }) =>
@@ -40,6 +45,7 @@ export class FilterEventsDto {
   )
   status?: EventStatus;
 
+  @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? parseInt(value, 10) : value,
@@ -48,6 +54,7 @@ export class FilterEventsDto {
   @Min(1)
   page?: number;
 
+  @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? parseInt(value, 10) : value,
