@@ -34,6 +34,7 @@ import {
   ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
+import { EmailConfirmedGuard } from '../common/guards/email-confirmed.guard';
 
 @ApiBearerAuth()
 @Controller('users')
@@ -55,7 +56,7 @@ export class UsersController {
   }
 
   @Patch('me')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), EmailConfirmedGuard)
   @ApiOperation({ summary: "Update current user's data" })
   @ApiBody({ type: UpdatePatchUserDto })
   @ApiResponse({ status: 200, description: 'User successfully updated' })
@@ -67,7 +68,7 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), EmailConfirmedGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({ summary: 'List all users (admin only)' })
   @ApiResponse({ status: 200, description: 'List of users' })
@@ -76,7 +77,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard('jwt'), SelfOrAdminGuard)
+  @UseGuards(AuthGuard('jwt'), EmailConfirmedGuard, SelfOrAdminGuard)
   @ApiOperation({ summary: 'Find user by ID' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User found' })
@@ -87,7 +88,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt'), SelfOrAdminGuard)
+  @UseGuards(AuthGuard('jwt'), EmailConfirmedGuard, SelfOrAdminGuard)
   @ApiOperation({ summary: 'Soft delete a user' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User successfully deactivated' })
