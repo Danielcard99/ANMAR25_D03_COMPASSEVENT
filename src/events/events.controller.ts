@@ -28,8 +28,10 @@ import {
   ApiParam,
   ApiResponse,
   ApiConsumes,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('events')
 @UsePipes(new ValidationPipe())
 export class EventsController {
