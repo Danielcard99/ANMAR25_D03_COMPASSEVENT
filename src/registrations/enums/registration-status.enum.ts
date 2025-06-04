@@ -1,4 +1,4 @@
 export enum RegistrationStatus {
   ACTIVE = 'active',
-  CANCELLED = 'cancelled',
+  CANCELED = 'canceled',
 }
