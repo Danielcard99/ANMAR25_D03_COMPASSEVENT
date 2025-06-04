@@ -16,31 +16,55 @@ export enum UserRole {
 }
 
 export class CreateUserDto {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Full name of the user',
+    example: 'John Doe',
+    minLength: 3,
+    maxLength: 100
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Email address (must be unique)',
+    example: 'john.doe@example.com'
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({ format: 'password' })
+  @ApiProperty({ 
+    description: 'Password (must be strong with uppercase, lowercase, numbers and special characters)',
+    format: 'password',
+    example: 'StrongP@ss123'
+  })
   @IsStrongPassword()
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({ example: '+55XXXXXXXXXXX' })
+  @ApiProperty({ 
+    description: 'Phone number in international format',
+    example: '+5511999999999' 
+  })
   @IsPhoneNumber('BR')
   @IsNotEmpty()
   phone: string;
 
-  @ApiProperty({ enum: UserRole })
+  @ApiProperty({ 
+    description: 'User role in the system',
+    enum: UserRole,
+    example: UserRole.PARTICIPANT
+  })
   @IsEnum(UserRole)
   role: UserRole;
 
-  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  @ApiProperty({ 
+    description: 'Profile image file (optional)',
+    type: 'string', 
+    format: 'binary', 
+    required: false 
+  })
   @IsOptional()
   file?: Express.Multer.File;
 }
