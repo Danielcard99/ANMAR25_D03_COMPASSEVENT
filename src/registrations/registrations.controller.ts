@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -39,5 +41,13 @@ export class RegistrationsController {
   ) {
     const participantId = req.user.userId;
     return this.registrationsService.listRegistrations(participantId, filter);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Cancel a registration' })
+  async softDelete(@Req() req: AuthRequest, @Param('id') id: string) {
+    const participantId = req.user.userId;
+    return this.registrationsService.cancelRegistration(id, participantId);
   }
 }
