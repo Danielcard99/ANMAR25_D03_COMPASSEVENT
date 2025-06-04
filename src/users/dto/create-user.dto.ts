@@ -16,10 +16,6 @@ export enum UserRole {
 }
 
 export class CreateUserDto {
-  @ApiProperty({ type: 'string', format: 'binary', required: false })
-  @IsOptional()
-  file?: Express.Multer.File;
-
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -43,4 +39,8 @@ export class CreateUserDto {
   @ApiProperty({ enum: UserRole })
   @IsEnum(UserRole)
   role: UserRole;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  @IsOptional()
+  file?: Express.Multer.File;
 }
