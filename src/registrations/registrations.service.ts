@@ -1,11 +1,15 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   BadRequestException,
+  ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -109,6 +113,55 @@ export class RegistrationsService {
     } catch (error) {
       console.error('Error listing registrations:', error);
       throw new InternalServerErrorException('Failed to list registrations');
+    }
+  }
+
+  async cancelRegistration(registrationId: string, participantId: string) {
+    try {
+      const { Item: registration } = await this.ddb.send(
+        new GetCommand({
+          TableName: process.env.REGISTRATIONS_TABLE_NAME,
+          Key: { id: registrationId },
+        }),
+      );
+
+      if (!registration) {
+        throw new NotFoundException('Registration not found');
+      }
+
+      if (registration.participantId != participantId) {
+        throw new ForbiddenException(
+          'You can only cancel your own registration',
+        );
+      }
+
+      if (registration.status === RegistrationStatus.CANCELED) {
+        throw new BadRequestException('Registration already canceled');
+      }
+
+      await this.ddb.send(
+        new UpdateCommand({
+          TableName: process.env.REGISTRATIONS_TABLE_NAME,
+          Key: { id: registrationId },
+          UpdateExpression: 'SET #status = :canceled, canceledAt = :now',
+          ExpressionAttributeNames: {
+            '#status': 'status',
+          },
+          ExpressionAttributeValues: {
+            ':canceled': RegistrationStatus.CANCELED,
+            ':now': new Date().toISOString(),
+          },
+        }),
+      );
+
+      return { message: 'Registration canceled successfully' };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Error canceling registration:', error);
+      throw new InternalServerErrorException('Failed to cancel registration');
     }
   }
 
