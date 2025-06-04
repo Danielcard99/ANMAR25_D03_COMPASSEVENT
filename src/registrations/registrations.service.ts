@@ -15,6 +15,7 @@ import { EventsService } from '../events/events.service';
 import { v4 as uuid } from 'uuid';
 import { RegistrationStatus } from './enums/registration-status.enum';
 import { Registration } from './entities/registration.entity';
+import { FilterRegistrationDto } from './dto/filter-registration.dto';
 
 @Injectable()
 export class RegistrationsService {
@@ -70,6 +71,45 @@ export class RegistrationsService {
     }
 
     return newRegistration;
+  }
+
+  async listRegistrations(
+    participantId: string,
+    filter: FilterRegistrationDto,
+  ) {
+    const { page = 1, limit = 10 } = filter;
+
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Invalid page or limit');
+    }
+
+    try {
+      const response = await this.ddb.send(
+        new QueryCommand({
+          TableName: process.env.REGISTRATIONS_TABLE_NAME,
+          IndexName: 'participantId-eventId-index',
+          KeyConditionExpression: 'participantId = :participantId',
+          ExpressionAttributeValues: {
+            ':participantId': participantId,
+          },
+        }),
+      );
+
+      const items = response.Items || [];
+
+      const start = (page - 1) * limit;
+      const paginatedItems = items.slice(start, start + limit);
+
+      return {
+        total: items.length,
+        page,
+        limit,
+        data: paginatedItems,
+      };
+    } catch (error) {
+      console.error('Error listing registrations:', error);
+      throw new InternalServerErrorException('Failed to list registrations');
+    }
   }
 
   private async checkExistingRegistration(
