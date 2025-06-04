@@ -33,10 +33,8 @@ import {
   ApiOperation,
   ApiParam,
   ApiResponse,
-  ApiTags,
 } from '@nestjs/swagger';
 
-@ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
 @UsePipes(new ValidationPipe())
