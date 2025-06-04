@@ -28,6 +28,15 @@ export class InfraStack extends Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    this.usersTable.addGlobalSecondaryIndex({
+      indexName: 'emailConfirmationTokenIndex',
+      partitionKey: {
+        name: 'emailConfirmationToken',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     this.eventsTable = new dynamodb.Table(this, 'EventsTable', {
       tableName: 'events',
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
