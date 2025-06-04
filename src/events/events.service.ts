@@ -26,6 +26,12 @@ export class EventsService {
     new DynamoDBClient({ region: process.env.AWS_REGION }),
   );
 
+  private removeUndefined(obj: Record<string, any>) {
+    return Object.fromEntries(
+      Object.entries(obj).filter(([_, v]) => v !== undefined),
+    );
+  }
+
   constructor(private readonly s3Service: S3Service) {}
 
   async create(
@@ -104,14 +110,14 @@ export class EventsService {
       }
     }
 
-    const updatedEvent = {
+    const updatedEvent = this.removeUndefined({
       ...event,
       ...(data.name && { name: data.name }),
       ...(data.description && { description: data.description }),
       ...(data.date && { date: data.date }),
       ...(isAdmin && data.organizerId && { organizerId: data.organizerId }),
       updatedAt: new Date().toISOString(),
-    };
+    });
 
     await this.ddb.send(
       new PutCommand({
