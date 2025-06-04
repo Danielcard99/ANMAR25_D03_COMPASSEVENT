@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -12,6 +14,7 @@ import { RegistrationsService } from './registrations.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthRequest } from '../common/interfaces/auth-request.interface';
+import { FilterRegistrationDto } from './dto/filter-registration.dto';
 
 @ApiBearerAuth()
 @Controller('registrations')
@@ -25,5 +28,16 @@ export class RegistrationsController {
   async create(@Body() data: CreateRegistrationDto, @Req() req: AuthRequest) {
     const participantId = req.user.userId;
     return this.registrationsService.createRegistration(participantId, data);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get all registrations' })
+  async findAll(
+    @Req() req: AuthRequest,
+    @Query() filter: FilterRegistrationDto,
+  ) {
+    const participantId = req.user.userId;
+    return this.registrationsService.listRegistrations(participantId, filter);
   }
 }
