@@ -14,9 +14,13 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('API')
-    .setDescription('Documentação da API de Usuários')
+    .setTitle('CompassEvent API')
+    .setDescription('API for event management, users, and registrations')
     .setVersion('1.0')
+    .addTag('auth', 'Authentication and access management')
+    .addTag('users', 'User management')
+    .addTag('events', 'Event management')
+    .addTag('registrations', 'Registration management')
     .addBearerAuth()
     .build();
 
