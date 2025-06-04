@@ -11,4 +11,6 @@ export interface User {
   createdAt: string;
   updatedAt?: string;
   isActive: boolean;
+  emailConfirmed?: boolean;
+  emailConfirmationToken?: string;
 }
