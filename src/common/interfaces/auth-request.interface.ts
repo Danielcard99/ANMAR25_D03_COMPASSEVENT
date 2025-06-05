@@ -4,7 +4,7 @@ export interface AuthRequest extends Request {
   user: {
     userId: string;
     email: string;
-    role: 'organizer' | 'participant' | 'admin';
+    role: 'participant' | 'organizer' | 'admin';
     emailConfirmed: boolean;
   };
 }

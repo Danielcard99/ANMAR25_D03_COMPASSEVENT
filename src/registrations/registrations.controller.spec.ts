@@ -5,7 +5,7 @@ import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { FilterRegistrationDto } from './dto/filter-registration.dto';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { RegistrationStatus } from './enums/registration-status.enum';
-import { Request } from 'express';
+import { createMockAuthRequest } from '../common/testing/mock-factory';
 
 describe('RegistrationsController', () => {
   let controller: RegistrationsController;
@@ -43,13 +43,12 @@ describe('RegistrationsController', () => {
       eventId: 'event-id',
     };
 
-    const mockRequest = {
-      user: {
-        userId: 'participant-id',
-        role: 'participant',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'participant-id',
+      role: 'participant',
+      emailConfirmed: true,
+      email: 'participant@example.com'
+    });
 
     it('should create a registration successfully', async () => {
       const expectedResult = {
@@ -95,13 +94,12 @@ describe('RegistrationsController', () => {
       limit: 10,
     };
 
-    const mockRequest = {
-      user: {
-        userId: 'participant-id',
-        role: 'participant',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'participant-id',
+      role: 'participant',
+      emailConfirmed: true,
+      email: 'participant@example.com'
+    });
 
     it('should return paginated registrations', async () => {
       const expectedResult = {
@@ -129,13 +127,12 @@ describe('RegistrationsController', () => {
   });
 
   describe('softDelete', () => {
-    const mockRequest = {
-      user: {
-        userId: 'participant-id',
-        role: 'participant',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'participant-id',
+      role: 'participant',
+      emailConfirmed: true,
+      email: 'participant@example.com'
+    });
 
     it('should cancel a registration', async () => {
       const expectedResult = {

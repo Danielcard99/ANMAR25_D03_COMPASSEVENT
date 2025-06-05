@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EmailConfirmedGuard } from './email-confirmed.guard';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { UsersService } from '../../users/users.service';
+import { createMockExecutionContext } from '../testing/mock-factory';
 
 describe('EmailConfirmedGuard', () => {
   let guard: EmailConfirmedGuard;
@@ -12,6 +13,8 @@ describe('EmailConfirmedGuard', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EmailConfirmedGuard,
@@ -70,6 +73,9 @@ describe('EmailConfirmedGuard', () => {
     });
 
     it('should throw ForbiddenException if request has no user', async () => {
+      // Reset mock to clear previous calls
+      mockUsersService.findById.mockReset();
+      
       const context = createMockExecutionContext({});
 
       await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
@@ -77,15 +83,3 @@ describe('EmailConfirmedGuard', () => {
     });
   });
 });
-
-function createMockExecutionContext(data: any): ExecutionContext {
-  const mockExecutionContext = {
-    switchToHttp: jest.fn().mockReturnValue({
-      getRequest: jest.fn().mockReturnValue(data),
-    }),
-    getHandler: jest.fn(),
-    getClass: jest.fn(),
-  } as unknown as ExecutionContext;
-
-  return mockExecutionContext;
-}

@@ -6,7 +6,7 @@ import { UpdatePatchUserDto } from './dto/update-user.dto';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { UserIdParamDto } from './dto/User-id-params.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Request } from 'express';
+import { createMockAuthRequest, createMockFile } from '../common/testing/mock-factory';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -50,11 +50,7 @@ describe('UsersController', () => {
       role: UserRole.PARTICIPANT,
     };
 
-    const mockFile = {
-      originalname: 'test.jpg',
-      buffer: Buffer.from('test'),
-      mimetype: 'image/jpeg',
-    } as Express.Multer.File;
+    const mockFile = createMockFile();
 
     it('should create a user successfully', async () => {
       const expectedResult = {
@@ -155,13 +151,12 @@ describe('UsersController', () => {
 
   describe('softDelete', () => {
     const params: UserIdParamDto = { id: 'user-id' };
-    const mockRequest = {
-      user: {
-        userId: 'admin-id',
-        role: 'admin',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'admin-id',
+      role: 'admin',
+      emailConfirmed: true,
+      email: 'admin@example.com'
+    });
 
     it('should soft delete a user', async () => {
       const expectedResult = {

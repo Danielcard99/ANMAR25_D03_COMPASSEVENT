@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SelfOrAdminGuard } from './self-or-admin.guard';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { createMockExecutionContext } from '../testing/mock-factory';
 
 describe('SelfOrAdminGuard', () => {
   let guard: SelfOrAdminGuard;
@@ -52,17 +53,14 @@ describe('SelfOrAdminGuard', () => {
 
       expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
+
+    it('should throw ForbiddenException if request has no params', () => {
+      const context = createMockExecutionContext({
+        user: { userId: 'user-id', role: 'participant', emailConfirmed: true },
+        params: {},
+      });
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
   });
 });
-
-function createMockExecutionContext(data: any): ExecutionContext {
-  const mockExecutionContext = {
-    switchToHttp: jest.fn().mockReturnValue({
-      getRequest: jest.fn().mockReturnValue(data),
-    }),
-    getHandler: jest.fn(),
-    getClass: jest.fn(),
-  } as unknown as ExecutionContext;
-
-  return mockExecutionContext;
-}

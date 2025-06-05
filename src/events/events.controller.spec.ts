@@ -5,7 +5,7 @@ import { CreateEventDto, EventStatus } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { FilterEventsDto } from './dto/filter-event.dto';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { Request } from 'express';
+import { createMockAuthRequest, createMockFile } from '../common/testing/mock-factory';
 
 describe('EventsController', () => {
   let controller: EventsController;
@@ -47,19 +47,17 @@ describe('EventsController', () => {
       date: '2023-12-31T00:00:00.000Z',
     };
 
-    const mockFile = {
+    const mockFile = createMockFile({
       originalname: 'event.jpg',
-      buffer: Buffer.from('test'),
       mimetype: 'image/jpeg',
-    } as Express.Multer.File;
+    });
 
-    const mockRequest = {
-      user: {
-        userId: 'organizer-id',
-        role: 'organizer',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'organizer-id',
+      role: 'organizer',
+      emailConfirmed: true,
+      email: 'organizer@example.com'
+    });
 
     it('should create an event successfully', async () => {
       const expectedResult = {
@@ -86,13 +84,12 @@ describe('EventsController', () => {
       description: 'Updated Description',
     };
 
-    const mockRequest = {
-      user: {
-        userId: 'organizer-id',
-        role: 'organizer',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'organizer-id',
+      role: 'organizer',
+      emailConfirmed: true,
+      email: 'organizer@example.com'
+    });
 
     it('should update an event successfully', async () => {
       const expectedResult = {
@@ -116,13 +113,12 @@ describe('EventsController', () => {
     });
 
     it('should update an event as admin', async () => {
-      const adminRequest = {
-        user: {
-          userId: 'admin-id',
-          role: 'admin',
-          emailConfirmed: true,
-        },
-      } as Request;
+      const adminRequest = createMockAuthRequest({
+        userId: 'admin-id',
+        role: 'admin',
+        emailConfirmed: true,
+        email: 'admin@example.com'
+      });
 
       const expectedResult = {
         id: 'event-id',
@@ -200,13 +196,12 @@ describe('EventsController', () => {
   });
 
   describe('softDelete', () => {
-    const mockRequest = {
-      user: {
-        userId: 'organizer-id',
-        role: 'organizer',
-        emailConfirmed: true,
-      },
-    } as Request;
+    const mockRequest = createMockAuthRequest({
+      userId: 'organizer-id',
+      role: 'organizer',
+      emailConfirmed: true,
+      email: 'organizer@example.com'
+    });
 
     it('should soft delete an event', async () => {
       const expectedResult = {

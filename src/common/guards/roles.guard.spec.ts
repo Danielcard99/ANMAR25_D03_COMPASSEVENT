@@ -3,6 +3,7 @@ import { RolesGuard } from './roles.guard';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext } from '@nestjs/common';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { createMockExecutionContext } from '../testing/mock-factory';
 
 describe('RolesGuard', () => {
   let guard: RolesGuard;
@@ -39,8 +40,8 @@ describe('RolesGuard', () => {
 
       expect(guard.canActivate(context)).toBe(true);
       expect(reflector.getAllAndOverride).toHaveBeenCalledWith(ROLES_KEY, [
-        expect.any(Function),
-        expect.any(Function),
+        context.getHandler(),
+        context.getClass(),
       ]);
     });
 
@@ -54,34 +55,22 @@ describe('RolesGuard', () => {
       expect(guard.canActivate(context)).toBe(true);
     });
 
-    it('should return false if user does not have required role', () => {
+    it('should throw ForbiddenException if user does not have required role', () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin', 'organizer']);
 
       const context = createMockExecutionContext({
         user: { userId: 'user-id', role: 'participant', emailConfirmed: true },
       });
 
-      expect(guard.canActivate(context)).toBe(false);
+      expect(() => guard.canActivate(context)).toThrow();
     });
 
-    it('should return false if request has no user', () => {
+    it('should throw ForbiddenException if request has no user', () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
 
       const context = createMockExecutionContext({});
 
-      expect(guard.canActivate(context)).toBe(false);
+      expect(() => guard.canActivate(context)).toThrow();
     });
   });
 });
-
-function createMockExecutionContext(data: any): ExecutionContext {
-  const mockExecutionContext = {
-    switchToHttp: jest.fn().mockReturnValue({
-      getRequest: jest.fn().mockReturnValue(data),
-    }),
-    getHandler: jest.fn(),
-    getClass: jest.fn(),
-  } as unknown as ExecutionContext;
-
-  return mockExecutionContext;
-}
